@@ -1,11 +1,11 @@
 import "./App.css";
 import KorgKonnector from "./KorgKonnector";
-import MidiDeviceManager from "./MidiDeviceManager";
+import Pong from "./components/game/Pong";
 
 function App() {
   return (
     <div className="App">
-      <MidiDeviceManager></MidiDeviceManager>
+      <Pong />
       <KorgKonnector />
     </div>
   );

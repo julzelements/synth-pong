@@ -80,7 +80,7 @@ const MidiDeviceManager: React.FC = () => {
 
   const handleInputDeviceSelection = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const id = e.target.value;
-    console.log(deviceList)
+    console.log(deviceList);
     const device = deviceList.find((device) => device.id === id);
     setSelectedDevice(device || null);
   };
@@ -111,8 +111,8 @@ const MidiDeviceManager: React.FC = () => {
   // I still need to manually trigger the connection of the default devices
   // But the selection of them is working well.
 
-  const defaultInputDeviceId = defaultInputDevice ? defaultInputDevice.id : '';
-  const defaultOutputDeviceId = defaultOutputDevice ? defaultOutputDevice.id : '';
+  const defaultInputDeviceId = defaultInputDevice ? defaultInputDevice.id : "";
+  const defaultOutputDeviceId = defaultOutputDevice ? defaultOutputDevice.id : "";
 
   return (
     <div>
