@@ -1,219 +1,226 @@
-import React, { Component, RefObject } from "react";
+import React, { useEffect, useRef, useState } from "react";
 
-interface Paddle {
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-  dy: number;
-}
+function Pong() {
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const [gameState, setGameState] = useState({
+    canvasWidth: 750,
+    canvasHeight: 585,
+    grid: 15,
+    paddleHeight: 15 * 5,
+    maxPaddleY: 585 - 15 - 15 * 5,
+    paddleSpeed: 6,
+    ballSpeed: 5,
+    leftPaddle: {
+      x: 15 * 2,
+      y: 585 / 2 - (15 * 5) / 2,
+      width: 15,
+      height: 15 * 5,
+      dy: 0,
+    },
+    rightPaddle: {
+      x: 750 - 15 * 3,
+      y: 585 / 2 - (15 * 5) / 2,
+      width: 15,
+      height: 15 * 5,
+      dy: 0,
+    },
+    ball: {
+      x: 750 / 2,
+      y: 585 / 2,
+      width: 15,
+      height: 15,
+      resetting: false,
+      dx: 5,
+      dy: -5,
+    },
+  });
 
-interface Ball {
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-  resetting: boolean;
-  dx: number;
-  dy: number;
-}
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const canvasContext = canvas.getContext("2d");
+    if (!canvasContext) return;
 
-interface GameState {
-  canvasWidth: number;
-  canvasHeight: number;
-  grid: number;
-  paddleHeight: number;
-  maxPaddleY: number;
-  paddleSpeed: number;
-  ballSpeed: number;
-  leftPaddle: Paddle;
-  rightPaddle: Paddle;
-  ball: Ball;
-}
+    const handleKeyDown = (e: { which: number }) => {
+      const { rightPaddle, leftPaddle, paddleSpeed } = gameState;
+      if (e.which === 38) {
+        setGameState((prevState) => ({
+          ...prevState,
+          rightPaddle: { ...rightPaddle, dy: -paddleSpeed },
+        }));
+      } else if (e.which === 40) {
+        setGameState((prevState) => ({
+          ...prevState,
+          rightPaddle: { ...rightPaddle, dy: paddleSpeed },
+        }));
+      }
 
-class Pong extends Component<{}, GameState> {
-  private canvasRef: RefObject<HTMLCanvasElement>;
-  private canvas: HTMLCanvasElement | null = null;
-  private canvasContext: CanvasRenderingContext2D | null = null;
-
-  constructor(props: {}) {
-    super(props);
-
-    this.canvasRef = React.createRef();
-
-    this.state = {
-      canvasWidth: 750,
-      canvasHeight: 585,
-      grid: 15,
-      paddleHeight: 15 * 5,
-      maxPaddleY: 585 - 15 - 15 * 5,
-      paddleSpeed: 6,
-      ballSpeed: 5,
-      leftPaddle: {
-        x: 15 * 2,
-        y: 585 / 2 - (15 * 5) / 2,
-        width: 15,
-        height: 15 * 5,
-        dy: 0,
-      },
-      rightPaddle: {
-        x: 750 - 15 * 3,
-        y: 585 / 2 - (15 * 5) / 2,
-        width: 15,
-        height: 15 * 5,
-        dy: 0,
-      },
-      ball: {
-        x: 750 / 2,
-        y: 585 / 2,
-        width: 15,
-        height: 15,
-        resetting: false,
-        dx: 5,
-        dy: -5,
-      },
+      if (e.which === 87) {
+        setGameState((prevState) => ({
+          ...prevState,
+          leftPaddle: { ...leftPaddle, dy: -paddleSpeed },
+        }));
+      } else if (e.which === 83) {
+        setGameState((prevState) => ({
+          ...prevState,
+          leftPaddle: { ...leftPaddle, dy: paddleSpeed },
+        }));
+      }
     };
-  }
 
-  componentDidMount() {
-    this.canvas = this.canvasRef.current;
-    if (this.canvas) {
-      this.canvasContext = this.canvas.getContext("2d")!;
-      this.loop();
-      document.addEventListener("keydown", this.handleKeyDown);
-      document.addEventListener("keyup", this.handleKeyUp);
-    }
-  }
+    const handleKeyUp = (e: { which: number }) => {
+      const { rightPaddle, leftPaddle } = gameState;
+      if (e.which === 38 || e.which === 40) {
+        setGameState((prevState) => ({
+          ...prevState,
+          rightPaddle: { ...rightPaddle, dy: 0 },
+        }));
+      }
 
-  componentWillUnmount() {
-    document.removeEventListener("keydown", this.handleKeyDown);
-    document.removeEventListener("keyup", this.handleKeyUp);
-  }
+      if (e.which === 83 || e.which === 87) {
+        setGameState((prevState) => ({
+          ...prevState,
+          leftPaddle: { ...leftPaddle, dy: 0 },
+        }));
+      }
+    };
 
-  collides(
-    obj1: { x: number; y: number; width: number; height: number },
-    obj2: { x: number; y: number; width: number; height: number }
-  ) {
-    return (
-      obj1.x < obj2.x + obj2.width &&
-      obj1.x + obj1.width > obj2.x &&
-      obj1.y < obj2.y + obj2.height &&
-      obj1.y + obj1.height > obj2.y
-    );
-  }
+    document.addEventListener("keydown", handleKeyDown);
+    document.addEventListener("keyup", handleKeyUp);
 
-  handleKeyDown = (e: KeyboardEvent) => {
-    const { rightPaddle, leftPaddle, paddleSpeed } = this.state;
-    if (e.which === 38) {
-      rightPaddle.dy = -paddleSpeed;
-    } else if (e.which === 40) {
-      rightPaddle.dy = paddleSpeed;
-    }
+    const collides = (
+      obj1: { x: any; y: any; width: any; height: any; resetting?: boolean; dx?: number; dy?: number },
+      obj2: { x: any; y: any; width: any; height: any; dy?: number }
+    ) => {
+      return (
+        obj1.x < obj2.x + obj2.width &&
+        obj1.x + obj1.width > obj2.x &&
+        obj1.y < obj2.y + obj2.height &&
+        obj1.y + obj1.height > obj2.y
+      );
+    };
 
-    if (e.which === 87) {
-      leftPaddle.dy = -paddleSpeed;
-    } else if (e.which === 83) {
-      leftPaddle.dy = paddleSpeed;
-    }
-  };
+    const loop = () => {
+      requestAnimationFrame(loop);
 
-  handleKeyUp = (e: KeyboardEvent) => {
-    const { rightPaddle, leftPaddle } = this.state;
-    if (e.which === 38 || e.which === 40) {
-      rightPaddle.dy = 0;
-    }
+      const { canvasWidth, canvasHeight, grid, maxPaddleY, leftPaddle, rightPaddle, ball, paddleSpeed, ballSpeed } =
+        gameState;
 
-    if (e.which === 83 || e.which === 87) {
-      leftPaddle.dy = 0;
-    }
-  };
+      canvasContext.clearRect(0, 0, canvasWidth, canvasHeight);
 
-  loop = () => {
-    requestAnimationFrame(this.loop);
-    const {
-      canvasContext: context,
-      state: { canvasWidth, canvasHeight, grid, maxPaddleY, leftPaddle, rightPaddle, ball, paddleSpeed, ballSpeed },
-    } = this;
-
-    if (context) {
-      context.clearRect(0, 0, canvasWidth, canvasHeight);
-
-      leftPaddle.y += leftPaddle.dy;
-      rightPaddle.y += rightPaddle.dy;
+      setGameState((prevState) => ({
+        ...prevState,
+        leftPaddle: { ...leftPaddle, y: leftPaddle.y + leftPaddle.dy },
+        rightPaddle: { ...rightPaddle, y: rightPaddle.y + rightPaddle.dy },
+      }));
 
       if (leftPaddle.y < grid) {
-        leftPaddle.y = grid;
+        setGameState((prevState) => ({
+          ...prevState,
+          leftPaddle: { ...leftPaddle, y: grid },
+        }));
       } else if (leftPaddle.y > maxPaddleY) {
-        leftPaddle.y = maxPaddleY;
+        setGameState((prevState) => ({
+          ...prevState,
+          leftPaddle: { ...leftPaddle, y: maxPaddleY },
+        }));
       }
 
       if (rightPaddle.y < grid) {
-        rightPaddle.y = grid;
+        setGameState((prevState) => ({
+          ...prevState,
+          rightPaddle: { ...rightPaddle, y: grid },
+        }));
       } else if (rightPaddle.y > maxPaddleY) {
-        rightPaddle.y = maxPaddleY;
+        setGameState((prevState) => ({
+          ...prevState,
+          rightPaddle: { ...rightPaddle, y: maxPaddleY },
+        }));
       }
 
-      if (context) {
-        context.fillStyle = "white";
-        context.fillRect(leftPaddle.x, leftPaddle.y, leftPaddle.width, leftPaddle.height);
-        context.fillRect(rightPaddle.x, rightPaddle.y, rightPaddle.width, rightPaddle.height);
+      canvasContext.fillStyle = "white";
+      canvasContext.fillRect(leftPaddle.x, leftPaddle.y, leftPaddle.width, leftPaddle.height);
+      canvasContext.fillRect(rightPaddle.x, rightPaddle.y, rightPaddle.width, rightPaddle.height);
 
-        ball.x += ball.dx;
-        ball.y += ball.dy;
+      setGameState((prevState) => ({
+        ...prevState,
+        ball: { ...ball, x: ball.x + ball.dx, y: ball.y + ball.dy },
+      }));
 
-        if (ball.y < grid) {
-          ball.y = grid;
-          ball.dy *= -1;
-        } else if (ball.y + grid > canvasHeight - grid) {
-          ball.y = canvasHeight - grid * 2;
-          ball.dy *= -1;
-        }
-
-        if ((ball.x < 0 || ball.x > canvasWidth) && !ball.resetting) {
-          ball.resetting = true;
-
-          setTimeout(() => {
-            ball.resetting = false;
-            ball.x = canvasWidth / 2;
-            ball.y = canvasHeight / 2;
-          }, 400);
-        }
-
-        if (this.collides(ball, leftPaddle)) {
-          ball.dx *= -1;
-          ball.x = leftPaddle.x + leftPaddle.width;
-        } else if (this.collides(ball, rightPaddle)) {
-          ball.dx *= -1;
-          ball.x = rightPaddle.x - ball.width;
-        }
-
-        if (context) {
-          context.fillRect(ball.x, ball.y, ball.width, ball.height);
-
-          context.fillStyle = "lightgrey";
-          context.fillRect(0, 0, canvasWidth, grid);
-          context.fillRect(0, canvasHeight - grid, canvasWidth, canvasHeight);
-
-          for (let i = grid; i < canvasHeight - grid; i += grid * 2) {
-            context.fillRect(canvasWidth / 2 - grid / 2, i, grid, grid);
-          }
-        }
+      if (ball.y < grid) {
+        setGameState((prevState) => ({
+          ...prevState,
+          ball: { ...ball, y: grid, dy: ball.dy * -1 },
+        }));
+      } else if (ball.y + grid > canvasHeight - grid) {
+        setGameState((prevState) => ({
+          ...prevState,
+          ball: { ...ball, y: canvasHeight - grid * 2, dy: ball.dy * -1 },
+        }));
       }
-    }
-  };
 
-  render() {
-    const { canvasWidth, canvasHeight } = this.state;
-    return (
-      <canvas
-        ref={this.canvasRef}
-        width={canvasWidth}
-        height={canvasHeight}
-        id="game"
-        style={{ background: "black", display: "block", margin: "0 auto" }}
-      />
-    );
-  }
+      if ((ball.x < 0 || ball.x > canvasWidth) && !ball.resetting) {
+        setGameState((prevState) => ({
+          ...prevState,
+          ball: {
+            ...ball,
+            resetting: true,
+          },
+        }));
+
+        setTimeout(() => {
+          setGameState((prevState) => ({
+            ...prevState,
+            ball: {
+              ...ball,
+              resetting: false,
+              x: canvasWidth / 2,
+              y: canvasHeight / 2,
+            },
+          }));
+        }, 400);
+      }
+
+      if (collides(ball, leftPaddle)) {
+        setGameState((prevState) => ({
+          ...prevState,
+          ball: { ...ball, dx: ball.dx * -1, x: leftPaddle.x + leftPaddle.width },
+        }));
+      } else if (collides(ball, rightPaddle)) {
+        setGameState((prevState) => ({
+          ...prevState,
+          ball: { ...ball, dx: ball.dx * -1, x: rightPaddle.x - ball.width },
+        }));
+      }
+
+      canvasContext.fillRect(ball.x, ball.y, ball.width, ball.height);
+
+      canvasContext.fillStyle = "lightgrey";
+      canvasContext.fillRect(0, 0, canvasWidth, grid);
+      canvasContext.fillRect(0, canvasHeight - grid, canvasWidth, canvasHeight);
+
+      for (let i = grid; i < canvasHeight - grid; i += grid * 2) {
+        canvasContext.fillRect(canvasWidth / 2 - grid / 2, i, grid, grid);
+      }
+    };
+
+    loop();
+
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+      document.removeEventListener("keyup", handleKeyUp);
+    };
+  }, [gameState]);
+
+  return (
+    <canvas
+      ref={canvasRef}
+      width={gameState.canvasWidth}
+      height={gameState.canvasHeight}
+      id="game"
+      style={{ background: "black", display: "block", margin: "0 auto" }}
+    />
+  );
 }
 
 export default Pong;
