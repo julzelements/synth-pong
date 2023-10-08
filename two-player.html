@@ -49,7 +49,7 @@
     </style>
   </head>
   <body>
-    <h1>Synth Pong Battle</h1>
+    <h1>2 Player Synth Pong Battle</h1>
     <canvas width="750" height="585" id="game"></canvas>
     <div id="menu">
       <button id="connectMidiOutput">Connect from computer to KORG</button>
@@ -58,16 +58,20 @@
     </div>
     <script>
       document.addEventListener("DOMContentLoaded", () => {
-        let midiOutput = null;
-        let midiInput = null;
+        let midiOutput1 = null;
+        let midiOutput2 = null;
+        let midiInput1 = null;
+        let midiInput2 = null;
 
         const connectToMidiOutput = async () => {
           try {
             const access = await navigator.requestMIDIAccess();
             const outputs = Array.from(access.outputs.values());
-            const desiredOutput = outputs.find((output) => output.name === "monologue SOUND");
-            if (desiredOutput) {
-              midiOutput = desiredOutput;
+            console.log(outputs);
+            const desiredOutputs = outputs.filter((output) => output.name === "monologue SOUND");
+            if (desiredOutputs) {
+              midiOutput1 = desiredOutputs[0];
+              midiOutput2 = desiredOutputs[1];
             } else {
               console.error("MIDI output device not found");
             }
@@ -80,10 +84,12 @@
           try {
             const access = await navigator.requestMIDIAccess();
             const inputs = Array.from(access.inputs.values());
-            const desiredInput = inputs.find((input) => input.name === "monologue KBD/KNOB");
-            if (desiredInput) {
-              midiInput = desiredInput;
-              midiInput.onmidimessage = (msg) => handleMidiMessage(msg);
+            const desiredInputs = inputs.filter((input) => input.name === "monologue KBD/KNOB");
+            if (desiredInputs) {
+              midiInput1 = desiredInputs[0];
+              midiInput2 = desiredInputs[1];
+              midiInput1.onmidimessage = (msg) => handleMidi1Message(msg);
+              midiInput2.onmidimessage = (msg) => handleMidi2Message(msg);
             } else {
               console.error("MIDI input device not found");
             }
@@ -92,26 +98,47 @@
           }
         };
 
-        const playMidiNote = (noteNumber) => {
-          if (!midiOutput) {
+        const playMidi1Note = (noteNumber) => {
+          if (!midiOutput1 && midiInput2) {
             console.log("No output device selected");
             return;
           } else {
             // Send MIDI note-on message for C4 (middle C) at maximum velocity
             const noteOnMessage = [0x90, 60, 127];
-            midiOutput.send(noteOnMessage);
+            midiOutput1.send(noteOnMessage);
+            midiOutput2.send(noteOnMessage);
 
             // Send MIDI note-off message for C4 after 0.5 seconds
             setTimeout(() => {
               const noteOffMessage = [0x80, 60, 0];
-              midiOutput.send(noteOffMessage);
+              midiOutput1.send(noteOffMessage);
+              midiOutput2.send(noteOffMessage);
+            }, 500);
+          }
+        };
+        const playMidi2Note = (noteNumber) => {
+          if (!midiOutput1 && midiInput2) {
+            console.log("No output device selected");
+            return;
+          } else {
+            // Send MIDI note-on message for C4 (middle C) at maximum velocity
+            const noteOnMessage = [0x90, 60, 127];
+            midiOutput2.send(noteOnMessage);
+
+            // Send MIDI note-off message for C4 after 0.5 seconds
+            setTimeout(() => {
+              const noteOffMessage = [0x80, 60, 0];
+              midiOutput2.send(noteOffMessage);
             }, 500);
           }
         };
 
         document.getElementById("connectMidiOutput").addEventListener("click", connectToMidiOutput);
         document.getElementById("connectMidiInput").addEventListener("click", connectToMidiInput);
-        document.getElementById("playNote").addEventListener("click", () => playMidiNote(60));
+        document.getElementById("playNote").addEventListener("click", () => {
+          playMidi1Note(60);
+          playMidi2Note(60);
+        });
 
         const canvas = document.getElementById("game");
         const context = canvas.getContext("2d");
@@ -157,14 +184,14 @@
           dy: -ballSpeed,
         };
 
-        const handleFilterChange = (val) => {
+        const handleFilter1Change = (val) => {
           leftPaddle.y = (val * canvas.height) / 127;
         };
-        const handleResonanceChange = (val) => {
+        const handleFilter2Change = (val) => {
           rightPaddle.y = (val * canvas.height) / 127;
         };
 
-        const handleMidiMessage = (msg) => {
+        const handleMidi1Message = (msg) => {
           if (msg.data.toString() === "248") {
             // useless clock message ignore
             return;
@@ -173,10 +200,25 @@
           const value = parseInt(msg.data[2].toString());
           switch (param) {
             case 43:
-              handleFilterChange(value);
+              handleFilter1Change(value);
               break;
-            case 44:
-              handleResonanceChange(value);
+            default:
+              console.log();
+              break;
+          }
+          console.log(msg.data.toString());
+        };
+
+        const handleMidi2Message = (msg) => {
+          if (msg.data.toString() === "248") {
+            // useless clock message ignore
+            return;
+          }
+          const param = parseInt(msg.data[1].toString());
+          const value = parseInt(msg.data[2].toString());
+          switch (param) {
+            case 43:
+              handleFilter2Change(value);
               break;
             default:
               console.log();
@@ -248,13 +290,13 @@
           // check to see if ball collides with paddle. if they do change x velocity
           if (collides(ball, leftPaddle)) {
             ball.dx *= -1;
-            playMidiNote();
+            playMidi1Note();
             // move ball next to the paddle otherwise the collision will happen again
             // in the next frame
             ball.x = leftPaddle.x + leftPaddle.width;
           } else if (collides(ball, rightPaddle)) {
             ball.dx *= -1;
-            playMidiNote();
+            playMidi2Note();
             // move ball next to the paddle otherwise the collision will happen again
             // in the next frame
             ball.x = rightPaddle.x - ball.width;
