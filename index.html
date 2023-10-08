@@ -4,6 +4,11 @@
     <title>Basic Pong HTML Game</title>
     <meta charset="UTF-8" />
     <style>
+      @font-face{
+        font-family: 'PumpDemiBold';
+        src: url('./PumpOpti-DemiBold.otf');
+      }
+
       html,
       body {
         height: 100%;
@@ -12,19 +17,46 @@
 
       body {
         background: black;
-        display: flex;
         align-items: center;
         justify-content: center;
+        display: flex;
+        flex-direction: column;
+      }
+
+      h1 {
+        font-family: PumpDemiBold, sans;
+        color: white;
+      }
+
+      button {
+        background-color: black;
+        border: 5px solid white;
+        color: white;
+        font-weight: bold;
+        font-size: 14px;
+        font-family: monospace;
+        text-transform: uppercase;
+      }
+
+      #menu {
+        display: flex;
+        flex-direction: row;
+        justify-content: space-between;
+        width: 750px;
+        margin-top: 25px;
+        margin-bottom: 30px;
       }
     </style>
   </head>
   <body>
     <h1>MIDI Output Component</h1>
-    <button id="connectMidiOutput">Connect from computer to KORG</button>
-    <button id="connectMidiInput">Connect from KORG to computer</button>
-    <button id="playNote">Play Note</button>
     <div id="paddle"></div>
     <canvas width="750" height="585" id="game"></canvas>
+    <div id="menu">
+      <button id="connectMidiOutput">Connect from computer to KORG</button>
+      <button id="connectMidiInput">Connect from KORG to computer</button>
+      <button id="playNote">Play Note</button>
+    </div>
     <script>
       document.addEventListener("DOMContentLoaded", () => {
         let midiOutput = null;
