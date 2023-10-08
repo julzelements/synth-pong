@@ -5,7 +5,7 @@ import Pong from "./components/game/Pong";
 function App() {
   return (
     <div className="App">
-      <Pong />
+      {/* <Pong /> */}
       <KorgKonnector />
     </div>
   );

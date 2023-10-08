@@ -1,5 +1,19 @@
 import React, { useEffect, useRef, useState } from "react";
 
+const useFrameTime = () => {
+  const [frameTime, setFrameTime] = React.useState(performance.now());
+  React.useEffect(() => {
+    let frameId: number;
+    const frame = (time: React.SetStateAction<number>) => {
+      setFrameTime(time);
+      frameId = requestAnimationFrame(frame);
+    };
+    requestAnimationFrame(frame);
+    return () => cancelAnimationFrame(frameId);
+  }, []);
+  return frameTime;
+};
+
 function Pong() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [gameState, setGameState] = useState({
@@ -40,53 +54,6 @@ function Pong() {
     if (!canvas) return;
     const canvasContext = canvas.getContext("2d");
     if (!canvasContext) return;
-
-    const handleKeyDown = (e: { which: number }) => {
-      const { rightPaddle, leftPaddle, paddleSpeed } = gameState;
-      if (e.which === 38) {
-        setGameState((prevState) => ({
-          ...prevState,
-          rightPaddle: { ...rightPaddle, dy: -paddleSpeed },
-        }));
-      } else if (e.which === 40) {
-        setGameState((prevState) => ({
-          ...prevState,
-          rightPaddle: { ...rightPaddle, dy: paddleSpeed },
-        }));
-      }
-
-      if (e.which === 87) {
-        setGameState((prevState) => ({
-          ...prevState,
-          leftPaddle: { ...leftPaddle, dy: -paddleSpeed },
-        }));
-      } else if (e.which === 83) {
-        setGameState((prevState) => ({
-          ...prevState,
-          leftPaddle: { ...leftPaddle, dy: paddleSpeed },
-        }));
-      }
-    };
-
-    const handleKeyUp = (e: { which: number }) => {
-      const { rightPaddle, leftPaddle } = gameState;
-      if (e.which === 38 || e.which === 40) {
-        setGameState((prevState) => ({
-          ...prevState,
-          rightPaddle: { ...rightPaddle, dy: 0 },
-        }));
-      }
-
-      if (e.which === 83 || e.which === 87) {
-        setGameState((prevState) => ({
-          ...prevState,
-          leftPaddle: { ...leftPaddle, dy: 0 },
-        }));
-      }
-    };
-
-    document.addEventListener("keydown", handleKeyDown);
-    document.addEventListener("keyup", handleKeyUp);
 
     const collides = (
       obj1: { x: any; y: any; width: any; height: any; resetting?: boolean; dx?: number; dy?: number },
@@ -204,12 +171,9 @@ function Pong() {
       }
     };
 
-    loop();
+    // loop();
 
-    return () => {
-      document.removeEventListener("keydown", handleKeyDown);
-      document.removeEventListener("keyup", handleKeyUp);
-    };
+    return () => {};
   }, [gameState]);
 
   return (
