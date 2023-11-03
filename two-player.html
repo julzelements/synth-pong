@@ -91,6 +91,9 @@
         // variable to store the requestAnimationFrame ref to stop the game
         let reqAnimationRef;
 
+        // sets the points to win
+        const pointsToWin = 5;
+
         const connectToMidiOutput = async () => {
           try {
             const access = await navigator.requestMIDIAccess();
@@ -290,7 +293,7 @@
           cancelAnimationFrame(reqAnimationRef);
           document.getElementById("winner").removeAttribute("hidden");
           document.getElementById("winner").innerHTML =
-            gameState.player1Score === 10 ? "PLAYER 1 WINS!" : "PLAYER 2 WINS";
+            gameState.player1Score === pointsToWin ? "PLAYER 1 WINS!" : "PLAYER 2 WINS";
           document
             .getElementById("playAgainButtonContainer")
             .removeAttribute("hidden");
@@ -368,10 +371,10 @@
               gameState.player1Score++;
             }
 
-            // checks if one of the players reached 10 points and calls gameOver()
+            // checks if one of the players reached the required points and calls gameOver()
             if (
-              gameState.player1Score === 10 ||
-              gameState.player2Score === 10
+              gameState.player1Score === pointsToWin ||
+              gameState.player2Score === pointsToWin
             ) {
               gameOver();
             }
