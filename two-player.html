@@ -184,9 +184,12 @@
         const grid = 15;
         const paddleHeight = grid * 5; // 80
         const maxPaddleY = canvas.height - grid - paddleHeight;
+        const baseTempo = 13000;
 
         var paddleSpeed = 6;
         var ballSpeed = 5;
+        var tempo = baseTempo / ballSpeed;
+        var beat = tempo / 8;
 
         const leftPaddle = {
           // start in the middle of the game on the left side
@@ -293,7 +296,9 @@
           cancelAnimationFrame(reqAnimationRef);
           document.getElementById("winner").removeAttribute("hidden");
           document.getElementById("winner").innerHTML =
-            gameState.player1Score === pointsToWin ? "PLAYER 1 WINS!" : "PLAYER 2 WINS";
+            gameState.player1Score === pointsToWin
+              ? "PLAYER 1 WINS!"
+              : "PLAYER 2 WINS";
           document
             .getElementById("playAgainButtonContainer")
             .removeAttribute("hidden");
@@ -303,6 +308,13 @@
         function playAgain() {
           gameState.player1Score = 0;
           gameState.player2Score = 0;
+
+          ballSpeed = 5;
+          ball.dx = ballSpeed;
+          ball.dy = -ballSpeed;
+          tempo = baseTempo / ballSpeed;
+          beat = tempo / 8;
+
           document.getElementById("winner").setAttribute("hidden", true);
           document
             .getElementById("playAgainButtonContainer")
@@ -313,6 +325,46 @@
         document
           .getElementById("playAgainButton")
           .addEventListener("click", playAgain);
+
+        function peterGunnTheme(paddlePosition) {
+          return [
+            paddlePosition + 21,
+            paddlePosition + 21,
+            paddlePosition + 23,
+            paddlePosition + 21,
+            paddlePosition + 24,
+            paddlePosition + 21,
+            paddlePosition + 26,
+            paddlePosition + 25,
+          ];
+        }
+
+        const playSequence = (player, notes) => {
+          // const beat = tempo / 8;
+          if (player === "left") {
+            notes.forEach(playOnleft);
+          } else if (player === "right") {
+            notes.forEach(playOnRight);
+          }
+        };
+
+        function playOnleft(value, index) {
+          setTimeout(() => {
+            midiOutput1.send([0x90, value, 127]);
+          }, index * beat);
+          setTimeout(() => {
+            midiOutput1.send([0x80, value, 0]);
+          }, index * beat + beat);
+        }
+
+        function playOnRight(value, index) {
+          setTimeout(() => {
+            midiOutput2.send([0x90, value, 127]);
+          }, index * beat);
+          setTimeout(() => {
+            midiOutput2.send([0x80, value, 0]);
+          }, index * beat + beat);
+        }
 
         // game loop
         function loop() {
@@ -385,6 +437,12 @@
               ball.resetting = false;
               ball.x = canvas.width / 2;
               ball.y = canvas.height / 2;
+
+              ballSpeed = ballSpeed + 1;
+              ball.dx = ballSpeed;
+              ball.dy = -ballSpeed;
+              tempo = baseTempo / ballSpeed;
+              beat = tempo / 8;
             }, 400);
             // this should probaly stay in time with the midi
           }
@@ -392,13 +450,15 @@
           // check to see if ball collides with paddle. if they do change x velocity
           if (collides(ball, leftPaddle)) {
             ball.dx *= -1;
-            playMidi1Note();
-            // move ball next to the paddle otherwise the collision will happen again
+            // play the them at a register set by paddle position (over 7 to keep in range)
+            playSequence("left", peterGunnTheme(leftPaddle.y / 9));
+            // move ball to the paddle otherwise the collision will happen again
             // in the next frame
             ball.x = leftPaddle.x + leftPaddle.width;
           } else if (collides(ball, rightPaddle)) {
             ball.dx *= -1;
-            playMidi2Note();
+            // play the them at a register set by paddle position (over 7 to keep in range)
+            playSequence("right", peterGunnTheme(rightPaddle.y / 9));
             // move ball next to the paddle otherwise the collision will happen again
             // in the next frame
             ball.x = rightPaddle.x - ball.width;
