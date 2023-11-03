@@ -46,10 +46,30 @@
         margin-top: 25px;
         margin-bottom: 30px;
       }
+
+      .scorePanel {
+        font-family: PumpDemiBold, sans;
+        color: white;
+        display: flex;
+        width: 750px;
+        justify-content: space-around;
+      }
+
+      #playAgainButtonContainer {
+        margin-bottom: 5px;
+      }
     </style>
   </head>
   <body>
     <h1>2 Player Synth Pong Battle</h1>
+    <div class="scorePanel">
+      <p id="firstScore">Score</p>
+      <p id="winner" hidden></p>
+      <p id="secondScore">Score</p>
+    </div>
+    <div id="playAgainButtonContainer" hidden>
+      <button id="playAgainButton">Play Again!</button>
+    </div>
     <canvas width="750" height="585" id="game"></canvas>
     <div id="menu">
       <button id="connectMidiOutput">Connect from computer to KORG</button>
@@ -62,13 +82,26 @@
         let midiOutput2 = null;
         let midiInput1 = null;
         let midiInput2 = null;
+        // game state scores
+        var gameState = {
+          player1Score: 0,
+          player2Score: 0,
+        };
+
+        // variable to store the requestAnimationFrame ref to stop the game
+        let reqAnimationRef;
+
+        // sets the points to win
+        const pointsToWin = 5;
 
         const connectToMidiOutput = async () => {
           try {
             const access = await navigator.requestMIDIAccess();
             const outputs = Array.from(access.outputs.values());
             console.log(outputs);
-            const desiredOutputs = outputs.filter((output) => output.name === "monologue SOUND");
+            const desiredOutputs = outputs.filter(
+              (output) => output.name === "monologue SOUND"
+            );
             if (desiredOutputs) {
               midiOutput1 = desiredOutputs[0];
               midiOutput2 = desiredOutputs[1];
@@ -84,7 +117,9 @@
           try {
             const access = await navigator.requestMIDIAccess();
             const inputs = Array.from(access.inputs.values());
-            const desiredInputs = inputs.filter((input) => input.name === "monologue KBD/KNOB");
+            const desiredInputs = inputs.filter(
+              (input) => input.name === "monologue KBD/KNOB"
+            );
             if (desiredInputs) {
               midiInput1 = desiredInputs[0];
               midiInput2 = desiredInputs[1];
@@ -133,8 +168,12 @@
           }
         };
 
-        document.getElementById("connectMidiOutput").addEventListener("click", connectToMidiOutput);
-        document.getElementById("connectMidiInput").addEventListener("click", connectToMidiInput);
+        document
+          .getElementById("connectMidiOutput")
+          .addEventListener("click", connectToMidiOutput);
+        document
+          .getElementById("connectMidiInput")
+          .addEventListener("click", connectToMidiInput);
         document.getElementById("playNote").addEventListener("click", () => {
           playMidi1Note(60);
           playMidi2Note(60);
@@ -238,9 +277,48 @@
           );
         }
 
+        // updates the score global state
+        function updateScore() {
+          document.getElementById(
+            "firstScore"
+          ).innerHTML = `Score: ${gameState.player1Score}`;
+          document.getElementById(
+            "secondScore"
+          ).innerHTML = `Score: ${gameState.player2Score}`;
+        }
+
+        // gameOver(): shows the winner and the play again button
+        function gameOver() {
+          updateScore();
+          cancelAnimationFrame(reqAnimationRef);
+          document.getElementById("winner").removeAttribute("hidden");
+          document.getElementById("winner").innerHTML =
+            gameState.player1Score === pointsToWin ? "PLAYER 1 WINS!" : "PLAYER 2 WINS";
+          document
+            .getElementById("playAgainButtonContainer")
+            .removeAttribute("hidden");
+        }
+
+        // playAgain(): resets game state and hides the winner and the play again button
+        function playAgain() {
+          gameState.player1Score = 0;
+          gameState.player2Score = 0;
+          document.getElementById("winner").setAttribute("hidden", true);
+          document
+            .getElementById("playAgainButtonContainer")
+            .setAttribute("hidden", true);
+          loop();
+        }
+
+        document
+          .getElementById("playAgainButton")
+          .addEventListener("click", playAgain);
+
         // game loop
         function loop() {
-          requestAnimationFrame(loop);
+          updateScore();
+
+          reqAnimationRef = requestAnimationFrame(loop);
           context.clearRect(0, 0, canvas.width, canvas.height);
 
           // prevent paddles from going through walls
@@ -258,8 +336,18 @@
 
           // draw paddles
           context.fillStyle = "white";
-          context.fillRect(leftPaddle.x, leftPaddle.y, leftPaddle.width, leftPaddle.height);
-          context.fillRect(rightPaddle.x, rightPaddle.y, rightPaddle.width, rightPaddle.height);
+          context.fillRect(
+            leftPaddle.x,
+            leftPaddle.y,
+            leftPaddle.width,
+            leftPaddle.height
+          );
+          context.fillRect(
+            rightPaddle.x,
+            rightPaddle.y,
+            rightPaddle.width,
+            rightPaddle.height
+          );
 
           // move ball by its velocity
           ball.x += ball.dx;
@@ -276,6 +364,20 @@
 
           // reset ball if it goes past paddle (but only if we haven't already done so)
           if ((ball.x < 0 || ball.x > canvas.width) && !ball.resetting) {
+            // checks the "x" position of the ball and update gameState score
+            if (ball.x < 0) {
+              gameState.player2Score++;
+            } else {
+              gameState.player1Score++;
+            }
+
+            // checks if one of the players reached the required points and calls gameOver()
+            if (
+              gameState.player1Score === pointsToWin ||
+              gameState.player2Score === pointsToWin
+            ) {
+              gameOver();
+            }
             ball.resetting = true;
 
             // give some time for the player to recover before launching the ball again
@@ -308,7 +410,12 @@
           // draw walls
           context.fillStyle = "lightgrey";
           context.fillRect(0, 0, canvas.width, grid);
-          context.fillRect(0, canvas.height - grid, canvas.width, canvas.height);
+          context.fillRect(
+            0,
+            canvas.height - grid,
+            canvas.width,
+            canvas.height
+          );
 
           // draw dotted line down the middle
           for (let i = grid; i < canvas.height - grid; i += grid * 2) {
@@ -317,7 +424,7 @@
         }
 
         // start the game
-        requestAnimationFrame(loop);
+        reqAnimationRef = requestAnimationFrame(loop);
       });
     </script>
   </body>
