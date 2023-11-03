@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Basic Pong HTML Game</title>
+    <meta charset="UTF-8" />
+    <style>
+      @font-face {
+        font-family: "PumpDemiBold";
+        src: url("./PumpOpti-DemiBold.otf");
+      }
+
+      html,
+      body {
+        height: 100%;
+        margin: 0;
+      }
+
+      body {
+        background: black;
+        align-items: center;
+        justify-content: center;
+        display: flex;
+        flex-direction: column;
+      }
+
+      h1 {
+        font-family: PumpDemiBold, sans;
+        color: white;
+      }
+
+      input {
+        background-color: black;
+        border: 5px solid white;
+      }
+
+      button {
+        background-color: black;
+        border: 5px solid white;
+        color: white;
+        font-weight: bold;
+        font-size: 30px;
+        font-family: monospace;
+        text-transform: uppercase;
+        margin-top: 30px;
+        margin-bottom: 30px;
+      }
+
+      #menu {
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        width: 400px;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="menu">
+      <input type="range" min="0" max="127" value="0" class="slider" id="slider" />
+      <button id="inputs">inputs ➡ 🎹</button>
+      <button id="outputs">outputs ⬅ 🎹</button>
+      <button id="playNote">Play note</button>
+    </div>
+    <script>
+      let korgOutputSound = null;
+      let korgInputKBD = null;
+      const noteOnMessage = [0x90, 60, 127];
+      const noteOffMessage = [0x80, 60, 0];
+
+      document.getElementById("inputs").addEventListener("click", () => {
+        // connect to "monologue KBD/KNOB"
+        if (!korgInputKBD) {
+          console.log("input connection failed 💥");
+        }
+      });
+
+      document.getElementById("outputs").addEventListener("click", () => {
+        // put navigator code here
+        // connect to "monologue KBD/KNOB"
+        if (!korgOutputSound) {
+          console.log("output connection failed 😭");
+        }
+      });
+
+      document.getElementById("playNote").addEventListener("click", () => {
+        // Send MIDI note-on message for C4 (middle C) at maximum velocity
+      });
+
+      document.getElementById("slider").addEventListener("input", (slider) => {
+        // IF YOU ARE FEELING BRAVE
+        // WORK WITH THE AUDIENCE TO MAP A KEY ACROSS
+        korgOutputSound.send([]);
+      });
+    </script>
+  </body>
+</html>
