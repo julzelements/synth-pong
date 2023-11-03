@@ -58,34 +58,42 @@
       <input type="range" min="0" max="127" value="0" class="slider" id="slider" />
       <button id="inputs">inputs ➡ 🎹</button>
       <button id="outputs">outputs ⬅ 🎹</button>
-      <button id="playNote">Test Connection</button>
+      <button id="playNote">Play note</button>
     </div>
     <script>
       const noteOnMessage = [0x90, 60, 0x7f];
       let korgOutputSound = null;
+      let korgInputKBD = null;
 
       document.getElementById("inputs").addEventListener("click", () => {
         navigator.requestMIDIAccess().then((access) => {
-          // Get lists of available MIDI controllers
+          korgInputKBD = Array.from(access.inputs)
+            .map((input) => input[1])
+            .find((input) => input.name === "monologue KBD/KNOB");
           const inputs = access.inputs;
 
-          inputs.forEach((input) => {
-            input.onmidimessage = (message) => {
-              if (message.data.toString() === "248") {
-                // useless clock message ignore
-                return;
-              }
-              document.getElementById("slider").value = message.data[2];
-              console.log(message.data[2]);
-            };
-          });
+          korgInputKBD.onmidimessage = (message) => {
+            if (message.data.toString() === "248") {
+              // useless clock message ignore
+              return;
+            }
+            document.getElementById("slider").value = message.data[2];
+          };
         });
+
+        if (!korgInputKBD) {
+          console.log("input connection failed 💥");
+        }
+        console.log(korgInputKBD);
       });
 
       document.getElementById("outputs").addEventListener("click", () => {
         navigator.requestMIDIAccess().then((access) => {
           outputs = Array.from(access.outputs.values());
           korgOutputSound = outputs.find((output) => output.name === "monologue SOUND");
+          if (!korgOutputSound) {
+            console.log("output connection failed 💥");
+          }
         });
       });
 
@@ -98,6 +106,8 @@
           korgOutputSound.send(noteOffMessage);
         }, 500);
       });
+
+      document.getElementById("slider").addEventListener("input", (slider) => korgOutputSound.send([]));
     </script>
   </body>
 </html>
