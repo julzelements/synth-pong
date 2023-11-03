@@ -425,8 +425,7 @@
 
             // checks if one of the players reached the required points and calls gameOver()
             if (
-              gameState.player1Score === pointsToWin ||
-              gameState.player2Score === pointsToWin
+              Object.values(gameState).includes(pointsToWin)
             ) {
               gameOver();
             }
