@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Basic Pong HTML Game</title>
+    <meta charset="UTF-8" />
+    <style>
+      @font-face {
+        font-family: "PumpDemiBold";
+        src: url("./PumpOpti-DemiBold.otf");
+      }
+
+      html,
+      body {
+        height: 100%;
+        margin: 0;
+      }
+
+      body {
+        background: black;
+        align-items: center;
+        justify-content: center;
+        display: flex;
+        flex-direction: column;
+      }
+
+      h1 {
+        font-family: PumpDemiBold, sans;
+        color: white;
+      }
+
+      input {
+        background-color: black;
+        border: 5px solid white;
+      }
+
+      button {
+        background-color: black;
+        border: 5px solid white;
+        color: white;
+        font-weight: bold;
+        font-size: 30px;
+        font-family: monospace;
+        text-transform: uppercase;
+        margin-top: 30px;
+        margin-bottom: 30px;
+      }
+
+      #menu {
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        width: 400px;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="menu">
+      <input type="range" min="0" max="127" value="0" class="slider" id="slider" />
+      <button id="inputs">inputs ➡ 🎹</button>
+      <button id="outputs">outputs ⬅ 🎹</button>
+      <button id="playNote">Test Connection</button>
+    </div>
+    <script>
+      const noteOnMessage = [0x90, 60, 0x7f];
+      let korgOutputSound = null;
+
+      document.getElementById("inputs").addEventListener("click", () => {
+        navigator.requestMIDIAccess().then((access) => {
+          // Get lists of available MIDI controllers
+          const inputs = access.inputs;
+
+          inputs.forEach((input) => {
+            input.onmidimessage = (message) => {
+              if (message.data.toString() === "248") {
+                // useless clock message ignore
+                return;
+              }
+              document.getElementById("slider").value = message.data[2];
+              console.log(message.data[2]);
+            };
+          });
+        });
+      });
+
+      document.getElementById("outputs").addEventListener("click", () => {
+        navigator.requestMIDIAccess().then((access) => {
+          outputs = Array.from(access.outputs.values());
+          korgOutputSound = outputs.find((output) => output.name === "monologue SOUND");
+        });
+      });
+
+      document.getElementById("playNote").addEventListener("click", () => {
+        // Send MIDI note-on message for C4 (middle C) at maximum velocity
+        const noteOnMessage = [0x90, 60, 127];
+        const noteOffMessage = [0x80, 60, 0];
+        korgOutputSound.send(noteOnMessage);
+        setTimeout(() => {
+          korgOutputSound.send(noteOffMessage);
+        }, 500);
+      });
+    </script>
+  </body>
+</html>
