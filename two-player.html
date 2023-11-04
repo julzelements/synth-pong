@@ -36,6 +36,7 @@
         font-size: 14px;
         font-family: monospace;
         text-transform: uppercase;
+        cursor: pointer;
       }
 
       #menu {
@@ -55,7 +56,7 @@
         justify-content: space-around;
       }
 
-      #playAgainButtonContainer {
+      #startGameButtonContainer {
         margin-bottom: 5px;
       }
     </style>
@@ -67,8 +68,8 @@
       <p id="winner" hidden></p>
       <p id="secondScore">Score</p>
     </div>
-    <div id="playAgainButtonContainer" hidden>
-      <button id="playAgainButton">Play Again!</button>
+    <div id="startGameButtonContainer">
+      <button id="startGameButton">Start Game</button>
     </div>
     <canvas width="750" height="585" id="game"></canvas>
     <div id="menu">
@@ -86,10 +87,11 @@
         var gameState = {
           player1Score: 0,
           player2Score: 0,
+          isGameStarted: false,
         };
 
-        // variable to store the requestAnimationFrame ref to stop the game
-        let reqAnimationRef;
+        // variable to store the requestAnimationFrame Id to stop the game
+        let reqAnimationId;
 
         // sets the points to win
         const pointsToWin = 5;
@@ -184,9 +186,13 @@
         const grid = 15;
         const paddleHeight = grid * 5; // 80
         const maxPaddleY = canvas.height - grid - paddleHeight;
+        const baseTempo = 13000;
+        const initialBallSpeed = 5;
 
         var paddleSpeed = 6;
-        var ballSpeed = 5;
+        var ballSpeed = initialBallSpeed;
+        var tempo = baseTempo / ballSpeed;
+        var beat = tempo / 8;
 
         const leftPaddle = {
           // start in the middle of the game on the left side
@@ -290,35 +296,89 @@
         // gameOver(): shows the winner and the play again button
         function gameOver() {
           updateScore();
-          cancelAnimationFrame(reqAnimationRef);
+          cancelAnimationFrame(reqAnimationId);
+          gameState.isGameStarted = false;
           document.getElementById("winner").removeAttribute("hidden");
           document.getElementById("winner").innerHTML =
-            gameState.player1Score === pointsToWin ? "PLAYER 1 WINS!" : "PLAYER 2 WINS";
+            gameState.player1Score === pointsToWin
+              ? "PLAYER 1 WINS!"
+              : "PLAYER 2 WINS";
           document
-            .getElementById("playAgainButtonContainer")
+            .getElementById("startGameButtonContainer")
             .removeAttribute("hidden");
         }
 
-        // playAgain(): resets game state and hides the winner and the play again button
-        function playAgain() {
+        // startGame(): resets game state and hides the winner and the play again button
+        function startGame() {
           gameState.player1Score = 0;
           gameState.player2Score = 0;
+
+          ballSpeed = initialBallSpeed;
+          ball.dx = ballSpeed;
+          ball.dy = -ballSpeed;
+          tempo = baseTempo / ballSpeed;
+          beat = tempo / 8;
+
+          gameState.isGameStarted = true;
+
           document.getElementById("winner").setAttribute("hidden", true);
           document
-            .getElementById("playAgainButtonContainer")
+            .getElementById("startGameButtonContainer")
             .setAttribute("hidden", true);
           loop();
         }
 
         document
-          .getElementById("playAgainButton")
-          .addEventListener("click", playAgain);
+          .getElementById("startGameButton")
+          .addEventListener("click", startGame);
+
+        function peterGunnTheme(paddlePosition) {
+          return [
+            paddlePosition + 21,
+            paddlePosition + 21,
+            paddlePosition + 23,
+            paddlePosition + 21,
+            paddlePosition + 24,
+            paddlePosition + 21,
+            paddlePosition + 26,
+            paddlePosition + 25,
+          ];
+        }
+
+        const playSequence = (player, notes) => {
+          if (player === "left") {
+            notes.forEach(playOnleft);
+          } else if (player === "right") {
+            notes.forEach(playOnRight);
+          }
+        };
+
+        function playOnleft(value, index) {
+          setTimeout(() => {
+            midiOutput1.send([0x90, value, 127]);
+          }, index * beat);
+          setTimeout(() => {
+            midiOutput1.send([0x80, value, 0]);
+          }, index * beat + beat);
+        }
+
+        function playOnRight(value, index) {
+          setTimeout(() => {
+            midiOutput2.send([0x90, value, 127]);
+          }, index * beat);
+          setTimeout(() => {
+            midiOutput2.send([0x80, value, 0]);
+          }, index * beat + beat);
+        }
 
         // game loop
         function loop() {
           updateScore();
 
-          reqAnimationRef = requestAnimationFrame(loop);
+          if (gameState.isGameStarted) {
+            reqAnimationId = requestAnimationFrame(loop);
+          }
+
           context.clearRect(0, 0, canvas.width, canvas.height);
 
           // prevent paddles from going through walls
@@ -372,10 +432,7 @@
             }
 
             // checks if one of the players reached the required points and calls gameOver()
-            if (
-              gameState.player1Score === pointsToWin ||
-              gameState.player2Score === pointsToWin
-            ) {
+            if (Object.values(gameState).includes(pointsToWin)) {
               gameOver();
             }
             ball.resetting = true;
@@ -385,6 +442,13 @@
               ball.resetting = false;
               ball.x = canvas.width / 2;
               ball.y = canvas.height / 2;
+
+              // accelerates the ball and the music
+              ballSpeed = ballSpeed + 1;
+              ball.dx = ballSpeed;
+              ball.dy = -ballSpeed;
+              tempo = baseTempo / ballSpeed;
+              beat = tempo / 8;
             }, 400);
             // this should probaly stay in time with the midi
           }
@@ -392,13 +456,15 @@
           // check to see if ball collides with paddle. if they do change x velocity
           if (collides(ball, leftPaddle)) {
             ball.dx *= -1;
-            playMidi1Note();
-            // move ball next to the paddle otherwise the collision will happen again
+            // play the them at a register set by paddle position (over 7 to keep in range)
+            playSequence("left", peterGunnTheme(leftPaddle.y / 9));
+            // move ball to the paddle otherwise the collision will happen again
             // in the next frame
             ball.x = leftPaddle.x + leftPaddle.width;
           } else if (collides(ball, rightPaddle)) {
             ball.dx *= -1;
-            playMidi2Note();
+            // play the them at a register set by paddle position (over 7 to keep in range)
+            playSequence("right", peterGunnTheme(rightPaddle.y / 9));
             // move ball next to the paddle otherwise the collision will happen again
             // in the next frame
             ball.x = rightPaddle.x - ball.width;
@@ -424,7 +490,7 @@
         }
 
         // start the game
-        reqAnimationRef = requestAnimationFrame(loop);
+        reqAnimationId = requestAnimationFrame(loop);
       });
     </script>
   </body>
