@@ -88,8 +88,8 @@
           player2Score: 0,
         };
 
-        // variable to store the requestAnimationFrame ref to stop the game
-        let reqAnimationRef;
+        // variable to store the requestAnimationFrame Id to stop the game
+        let reqAnimationId;
 
         // sets the points to win
         const pointsToWin = 5;
@@ -185,9 +185,10 @@
         const paddleHeight = grid * 5; // 80
         const maxPaddleY = canvas.height - grid - paddleHeight;
         const baseTempo = 13000;
+        const initialBallSpeed = 5;
 
         var paddleSpeed = 6;
-        var ballSpeed = 5;
+        var ballSpeed = initialBallSpeed;
         var tempo = baseTempo / ballSpeed;
         var beat = tempo / 8;
 
@@ -293,7 +294,7 @@
         // gameOver(): shows the winner and the play again button
         function gameOver() {
           updateScore();
-          cancelAnimationFrame(reqAnimationRef);
+          cancelAnimationFrame(reqAnimationId);
           document.getElementById("winner").removeAttribute("hidden");
           document.getElementById("winner").innerHTML =
             gameState.player1Score === pointsToWin
@@ -309,7 +310,7 @@
           gameState.player1Score = 0;
           gameState.player2Score = 0;
 
-          ballSpeed = 5;
+          ballSpeed = initialBallSpeed;
           ball.dx = ballSpeed;
           ball.dy = -ballSpeed;
           tempo = baseTempo / ballSpeed;
@@ -369,7 +370,7 @@
         function loop() {
           updateScore();
 
-          reqAnimationRef = requestAnimationFrame(loop);
+          reqAnimationId = requestAnimationFrame(loop);
           context.clearRect(0, 0, canvas.width, canvas.height);
 
           // prevent paddles from going through walls
@@ -436,6 +437,7 @@
               ball.x = canvas.width / 2;
               ball.y = canvas.height / 2;
 
+            // accelerates the ball and the music  
               ballSpeed = ballSpeed + 1;
               ball.dx = ballSpeed;
               ball.dy = -ballSpeed;
@@ -482,7 +484,7 @@
         }
 
         // start the game
-        reqAnimationRef = requestAnimationFrame(loop);
+        reqAnimationId = requestAnimationFrame(loop);
       });
     </script>
   </body>
